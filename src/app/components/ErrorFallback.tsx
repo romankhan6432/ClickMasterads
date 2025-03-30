@@ -2,7 +2,10 @@
 
 import { FallbackProps } from 'react-error-boundary';
 
-interface ErrorFallbackProps extends FallbackProps {
+// Make resetErrorBoundary optional by extending a modified version of FallbackProps
+interface ErrorFallbackProps {
+  error: Error | string;
+  resetErrorBoundary?: () => void;
   onRetry?: () => void;
 }
 
@@ -34,7 +37,7 @@ export default function ErrorFallback({ error, resetErrorBoundary, onRetry }: Er
           </svg>
         </div>
         <h2 className="text-xl font-semibold text-white">Something went wrong</h2>
-        <p className="text-gray-400 text-sm">{error.message || error}</p>
+        <p className="text-gray-400 text-sm">{error instanceof Error ? error.message : error}</p>
         <button
           onClick={handleRetry}
           className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
