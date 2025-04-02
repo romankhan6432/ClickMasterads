@@ -6,6 +6,7 @@ import { useForm, Controller, FieldValues } from 'react-hook-form';
 import Image from 'next/image';
 import { RootState } from '../store';
 import { LoadingSpinner } from './LoadingSpinner';
+import {  toast } from 'react-toastify';
 import { ErrorMessage } from './ErrorMessage';
 import {
   MIN_CRYPTO_AMOUNT,
@@ -16,6 +17,7 @@ import {
   BDT_PROCESSING_TIME,
   NETWORK_FEE_MESSAGE
 } from '../constants/withdrawal';
+import { API_CALL } from '@/lib/client';
 
 // Custom Select Component
 interface SelectOption {
@@ -237,27 +239,14 @@ export default function WithdrawalModal({ isOpen, onClose, onHistoryClick, teleg
   }, [isCryptoPayment, watch]);
 
   const onSubmit = async (data: WithdrawalFormData) => {
-
-    console.log(data)
-    try {
-      const response = await fetch('/api/withdrawals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, telegramId: telegramId }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to submit withdrawal request');
-      }
-
-      onClose();
-    } catch (error) {
-      if (error instanceof Error) {
-        return error.message;
-      }
-      return 'An unexpected error occurred';
+  
+    const { response , status }  = await API_CALL({ url :'/withdrawals' , method : 'POST' , body : { ...data , telegramId }});
+   
+    if(status === 200){
+     return toast.success('Withdrawal request submitted successfully');
     }
+     
+    return toast.error(response?.error as string)
   };
 
   const setMaxAmount = useCallback(() => {
@@ -494,7 +483,7 @@ export default function WithdrawalModal({ isOpen, onClose, onHistoryClick, teleg
                   />
                   <button
                     type="button"
-                   
+                    onClick={setMaxAmount}
                     disabled={isDisabled}
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 px-3 py-1 bg-[#2C2D30] text-blue-500 text-sm font-medium rounded hover:text-blue-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >

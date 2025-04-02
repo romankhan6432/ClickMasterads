@@ -6,9 +6,10 @@ import User from '@/models/User';
 
 // Constants for conversion
 const USD_TO_BDT_RATE = 100; // 1 USD = 100 BDT
-const MIN_CRYPTO_AMOUNT = 0.002;
-const MIN_BDT_AMOUNT = 100;
-const MAX_BDT_AMOUNT = 25000;
+const MIN_CRYPTO_AMOUNT = 0.5;
+const MAX_CRYPTO_AMOUNT = 50; // Maximum 50 USDT withdrawal
+const MIN_BDT_AMOUNT = 50;
+const MAX_BDT_AMOUNT = 5000;
 
 // Helper function to convert USDT to BDT
 function convertUSDTtoBDT(usdtAmount: number): number {
@@ -76,6 +77,12 @@ export async function POST(req: Request) {
             if (amountInUSDT < MIN_CRYPTO_AMOUNT) {
                 return NextResponse.json(
                     { error: `Minimum withdrawal amount is ${MIN_CRYPTO_AMOUNT} USDT` },
+                    { status: 400 }
+                );
+            }
+            if (amountInUSDT > MAX_CRYPTO_AMOUNT) {
+                return NextResponse.json(
+                    { error: `Maximum withdrawal amount is ${MAX_CRYPTO_AMOUNT} USDT` },
                     { status: 400 }
                 );
             }

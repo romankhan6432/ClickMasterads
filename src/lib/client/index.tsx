@@ -29,6 +29,7 @@ export type Method =
   type responstype = {
     result?: result;
     message?: message;
+    error ? : any
     apiVersion?: string;
     hash?: any;
     email?: string;

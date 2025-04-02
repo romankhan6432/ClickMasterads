@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { signIn, useSession } from 'next-auth/react';
 import WithdrawalModal from './components/WithdrawalModal';
 import WithdrawalHistoryModal from './components/WithdrawalHistoryModal';
 import TopEarnersModal from './components/TopEarnersModal';
@@ -10,7 +9,6 @@ import AboutModal from './components/AboutModal';
 import LiveSupportModal from './components/LiveSupportModal';
 import UserStats from './components/UserStats';
 import DailyProgress from './components/DailyProgress';
-import AdButtons from './components/AdButtons';
 import DirectLinks from './components/DirectLinks';
 import BottomNavigation from './components/BottomNavigation';
 import Loading from './components/Loading';
@@ -22,18 +20,13 @@ import { fetchUserState, fetchDirectLinks, watchAd } from './store';
 import { useRouter } from 'next/navigation';
 import { useTheme } from './providers/ThemeProvider';
 import { useModals } from './hooks/useModals';
+import { toast } from 'react-toastify';
 
-interface Session {
-    user?: {
-        id?: string;
-        name?: string;
-        email?: string;
-    };
-}
+
 
 declare global {
     interface Window {
-        show_9132294: any;
+        show_9103912: any;
         Telegram: {
             WebApp: {
                 initData: string;
@@ -112,16 +105,17 @@ export default function Home() {
 
     const handleWatchAd = async () => {
         if (!telegramUser) {
-            alert('Please login first');
+            
+           toast.error('Please login first');
             return;
         }
 
         try {
-            await window.show_9132294?.();
+            await window.show_9103912?.();
             const resultAction = await dispatch(watchAd({ telegramId: telegramUser.id.toString() }));
             
             if (watchAd.fulfilled.match(resultAction)) {
-                await dispatch(fetchUserState({ telegramId: telegramUser.id.toString() }));
+                dispatch(fetchUserState({ telegramId: telegramUser.id.toString() }));
             } else if (watchAd.rejected.match(resultAction)) {
                 throw new Error(resultAction.payload as string);
             }
@@ -175,10 +169,22 @@ export default function Home() {
                         maxAds={1000}
                     />
 
-                    <AdButtons
-                        onWatchAd={handleWatchAd}
-                        disabled={false}
-                    />
+                    {/* Watch Ads Button */}
+                    <div className="flex justify-center">
+                        <button
+                            onClick={handleWatchAd}
+                            disabled={adState.loading}
+                            className="relative overflow-hidden group bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-all duration-300"></div>
+                            <div className="flex items-center space-x-2">
+                                <span className="text-xl">🎥</span>
+                                <span className="text-lg">
+                                    {adState.loading ? 'Loading...' : 'Watch Ad to Earn'}
+                                </span>
+                            </div>
+                        </button>
+                    </div>
 
                     <DirectLinks />
                 </div>
