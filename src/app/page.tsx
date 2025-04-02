@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from './providers/ThemeProvider';
 import { useModals } from './hooks/useModals';
 import { toast } from 'react-toastify';
+import { DEMO_USER_ID } from '@/lib/defult_user';
 
 
 
@@ -104,18 +105,14 @@ export default function Home() {
     }, [toggleTheme])
 
     const handleWatchAd = async () => {
-        if (!telegramUser) {
-            
-           toast.error('Please login first');
-            return;
-        }
-
+        
         try {
             await window.show_9103912?.();
-            const resultAction = await dispatch(watchAd({ telegramId: telegramUser.id.toString() }));
+            
+            const resultAction = await dispatch(watchAd({ telegramId: telegramUser?.id.toString() ||   DEMO_USER_ID || '' }));
             
             if (watchAd.fulfilled.match(resultAction)) {
-                dispatch(fetchUserState({ telegramId: telegramUser.id.toString() }));
+                dispatch(fetchUserState({ telegramId: telegramUser?.id.toString() ||   DEMO_USER_ID }));
             } else if (watchAd.rejected.match(resultAction)) {
                 throw new Error(resultAction.payload as string);
             }

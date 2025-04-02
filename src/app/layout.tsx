@@ -38,7 +38,7 @@ export default function RootLayout({
             src="https://telegram.org/js/telegram-web-app.js"
             strategy="beforeInteractive"
           />
-          <Script src="//whephiwums.com/vignette.min.js" data-zone="9132294" data-sdk='show_9132294'/>
+          <Script src="//whephiwums.com/vignette.min.js" data-zone="9103912" data-sdk='show_9103912'/>
 
         <ErrorBoundary FallbackComponent={ErrorFallback}>
           <LoadingProvider>
