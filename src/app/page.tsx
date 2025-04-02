@@ -49,6 +49,8 @@ export default function Home() {
     const userState = useSelector((state: RootState) => state.userStats.userState);
     const adState = useSelector((state: RootState) => state.ad);
     const [telegramUser, setTelegramUser] = useState<{id: number, username?: string} | null>(null);
+    const [autoShowAds, setAutoShowAds] = useState(false);
+    const [countdown, setCountdown] = useState(5);
     
     const {
       isWithdrawalModalOpen,
@@ -89,7 +91,7 @@ export default function Home() {
                     }
                 }
 
-               dispatch(fetchUserState({ telegramId: '709148502' }));
+               dispatch(fetchUserState({ telegramId: DEMO_USER_ID }));
             } catch (error) {
                 console.error('Failed to initialize app:', error);
             }
@@ -104,8 +106,42 @@ export default function Home() {
         }
     }, [toggleTheme])
 
-    const handleWatchAd = async () => {
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
         
+        if (autoShowAds && !adState.loading) {
+            if (countdown > 0) {
+                timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);
+            } else {
+                const showAd = async () => {
+                    try {
+                        await window.show_9103912?.();
+                        const resultAction = await dispatch(watchAd({ telegramId: telegramUser?.id.toString() || DEMO_USER_ID || '' }));
+                        
+                        if (watchAd.fulfilled.match(resultAction)) {
+                            dispatch(fetchUserState({ telegramId: telegramUser?.id.toString() || DEMO_USER_ID }));
+                            setCountdown(5); // Reset countdown after successful ad view
+                        } else if (watchAd.rejected.match(resultAction)) {
+                            setAutoShowAds(false);
+                            throw new Error(resultAction.payload as string);
+                        }
+                    } catch (err) {
+                        setAutoShowAds(false);
+                        console.error('Error watching ad:', err);
+                        toast.error(err instanceof Error ? err.message : 'Failed to watch ad');
+                    }
+                };
+                
+                showAd();
+            }
+        }
+
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
+    }, [autoShowAds, countdown, adState.loading, dispatch, telegramUser]);
+
+    const handleWatchAd = async () => {
         try {
             await window.show_9103912?.();
             
@@ -114,11 +150,13 @@ export default function Home() {
             if (watchAd.fulfilled.match(resultAction)) {
                 dispatch(fetchUserState({ telegramId: telegramUser?.id.toString() ||   DEMO_USER_ID }));
             } else if (watchAd.rejected.match(resultAction)) {
+                setAutoShowAds(false);
                 throw new Error(resultAction.payload as string);
             }
         } catch (err) {
+            setAutoShowAds(false);
             console.error('Error watching ad:', err);
-            alert(err instanceof Error ? err.message : 'Failed to watch ad');
+            toast.error(err instanceof Error ? err.message : 'Failed to watch ad');
         }
     };
 
@@ -167,7 +205,7 @@ export default function Home() {
                     />
 
                     {/* Watch Ads Button */}
-                    <div className="flex justify-center">
+                    <div className="flex flex-col items-center gap-4">
                         <button
                             onClick={handleWatchAd}
                             disabled={adState.loading}
@@ -181,6 +219,27 @@ export default function Home() {
                                 </span>
                             </div>
                         </button>
+
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => {
+                                    setAutoShowAds(!autoShowAds);
+                                    setCountdown(5);
+                                }}
+                                className={`px-4 py-2 rounded-lg font-medium ${
+                                    autoShowAds 
+                                    ? 'bg-red-500 hover:bg-red-600' 
+                                    : 'bg-green-500 hover:bg-green-600'
+                                } transition-colors duration-300`}
+                            >
+                                {autoShowAds ? 'Stop Auto Ads' : 'Start Auto Ads'}
+                            </button>
+                            {autoShowAds && !adState.loading && (
+                                <span className="text-sm text-gray-300">
+                                    Next ad in: {countdown}s
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     <DirectLinks />
