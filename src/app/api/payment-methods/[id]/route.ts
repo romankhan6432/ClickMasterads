@@ -3,13 +3,15 @@ import { NextResponse } from 'next/server';
 import PaymentMethod from '@/models/PaymentMethod';
 import connectDB from '@/lib/db';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, context : any) {
   try {
     await connectDB();
     const data = await request.json();
+
+    const { id } = await context.params;
     
     const updatedMethod = await PaymentMethod.findByIdAndUpdate(
-      params.id,
+      id ,
       { ...data },
       { new: true, runValidators: true }
     );
@@ -33,11 +35,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, context : any) {
   try {
     await connectDB();
+
+    const { id } = await context.params;
     
-    const deletedMethod = await PaymentMethod.findByIdAndDelete(params.id);
+    const deletedMethod = await PaymentMethod.findByIdAndDelete(id);
 
     if (!deletedMethod) {
       return NextResponse.json({ 

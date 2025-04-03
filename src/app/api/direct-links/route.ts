@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-
-import connectDB from '@/lib/mongodb';
+ 
 import DirectLink from '@/models/DirectLink';
 import { authOptions } from '@/lib/authOptions';
+import connectDB from '@/lib/db';
 
 // GET all direct links or filter by user
 export async function GET() {

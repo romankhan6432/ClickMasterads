@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import connectDB from '@/lib/mongodb';
+
 import DirectLink from '@/models/DirectLink';
 import User from '@/models/User';
 import ClickHistory from '@/models/ClickHistory';
+import connectDB from '@/lib/db';
 
 // Function to validate hash
 const validateHash = (id: string, timestamp: number, hash: string) => {
