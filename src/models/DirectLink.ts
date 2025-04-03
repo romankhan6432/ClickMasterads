@@ -1,76 +1,59 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose from 'mongoose';
 
-export interface IDirectLink {
-    title: string;
-    url: string;
-    icon: string;
-    gradient: {
-        from: string;
-        to: string;
-    };
-    clicks: number;
-    isActive: boolean;
-    position: number;
-    category: string;
-    lastClicked?: Date;
-}
-
-const directLinkSchema = new Schema<IDirectLink>({
-    title: {
-        type: String,
-        required: [true, 'Title is required'],
-        trim: true
-    },
+const directLinkSchema = new mongoose.Schema({
     url: {
         type: String,
-        required: [true, 'URL is required'],
-        trim: true
+        required: true,
     },
-    icon: {
+    title: {
         type: String,
-        default: '🔗'
-    },
-    gradient: {
-        from: {
-            type: String,
-            required: true,
-            default: 'rose-600'
-        },
-        to: {
-            type: String,
-            required: true,
-            default: 'pink-800'
-        }
+        default: null
     },
     clicks: {
         type: Number,
         default: 0,
-        min: 0
     },
-    isActive: {
-        type: Boolean,
-        default: true
-    },
-    position: {
-        type: Number,
-        required: true,
-        min: 1
-    },
-    category: {
+    status: {
         type: String,
-        required: true,
-        default: 'adult',
-        enum: ['adult', 'general']
+        enum: ['active', 'inactive'],
+        default: 'active',
     },
-    lastClicked: {
-        type: Date
+    userId: {
+        type: String, 
+        required: true,
+    },
+    rewardPerClick: {
+        type: Number,
+        default: 0.01,
+        min: 0,
+        get: (v: number) => Number(v.toFixed(3)),
+        set: (v: number) => Number(v.toFixed(3))
+    },
+    totalEarnings: {
+        type: Number,
+        default: 0,
+        min: 0,
+        get: (v: number) => Number(v.toFixed(2)),
+        set: (v: number) => Number(v.toFixed(2))
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { getters: true },
+    toObject: { getters: true }
 });
 
-// Create indexes for efficient querying
-directLinkSchema.index({ position: 1 });
-directLinkSchema.index({ category: 1, isActive: 1 });
+// Add indexes
+directLinkSchema.index({ userId: 1 });
+directLinkSchema.index({ createdAt: -1 });
 
-export const DirectLink = mongoose.models.DirectLink || mongoose.model<IDirectLink>('DirectLink', directLinkSchema);
+// Pre-save middleware to calculate total earnings
+directLinkSchema.pre('save', function(next) {
+    if (this.isModified('clicks') || this.isModified('rewardPerClick')) {
+        this.totalEarnings = Number((this.clicks * this.rewardPerClick).toFixed(2));
+    }
+    next();
+});
+
+export const DirectLink = mongoose.models.DirectLink || mongoose.model('DirectLink', directLinkSchema);
+
+export default DirectLink;

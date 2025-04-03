@@ -1,337 +1,620 @@
 'use client';
 
-import { useState } from 'react';
-import { Layout, Form, Input, Select, Card, Row, Col, Space, Button, Switch, InputNumber, Menu, message, Table, Modal } from 'antd';
-import { DashboardOutlined, TeamOutlined, HistoryOutlined, WalletOutlined, SettingOutlined, DollarOutlined, PlusOutlined } from '@ant-design/icons';
-import { api } from '@/app/services/api';
-
-const { Content, Sider } = Layout;
-const { Option } = Select;
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  RedoOutlined,
+  DashboardOutlined,
+  UserOutlined,
+  WalletOutlined,
+  CreditCardOutlined,
+  SettingOutlined,
+  BellOutlined,
+  TeamOutlined,
+  HistoryOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  CloseOutlined,
+  ExclamationCircleOutlined
+} from '@ant-design/icons';
+import { API_CALL } from '@/lib/client';
+import Image from 'next/image';
 
 interface PaymentMethod {
-    id: string;
-    name: string;
-    currency: string;
-    network: string;
-    fee: number;
-    minAmount: number;
-    maxAmount: number;
-    isActive: boolean;
+  id: string;
+  name: string;
+  type: string;
+  icon: string;
+  status: string;
+  minimumAmount: number;
+  maximumAmount: number;
+  processingTime: string;
+  fees: string;
 }
 
-export default function PaymentMethods() {
-    const [form] = Form.useForm();
-    const [loading, setLoading] = useState(false);
-    const [collapsed, setCollapsed] = useState(false);
-    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-    const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-
-    const columns = [
-        {
-            title: 'Name',
-            dataIndex: 'name',
-            key: 'name',
-        },
-        {
-            title: 'Currency',
-            dataIndex: 'currency',
-            key: 'currency',
-        },
-        {
-            title: 'Network',
-            dataIndex: 'network',
-            key: 'network',
-        },
-        {
-            title: 'Fee',
-            dataIndex: 'fee',
-            key: 'fee',
-            render: (fee: number) => `${fee}%`,
-        },
-        {
-            title: 'Min Amount',
-            dataIndex: 'minAmount',
-            key: 'minAmount',
-            render: (amount: number) => `$${amount}`,
-        },
-        {
-            title: 'Max Amount',
-            dataIndex: 'maxAmount',
-            key: 'maxAmount',
-            render: (amount: number) => `$${amount}`,
-        },
-        {
-            title: 'Status',
-            dataIndex: 'isActive',
-            key: 'isActive',
-            render: (isActive: boolean) => (
-                <Switch checked={isActive} onChange={(checked) => handleStatusChange(checked)} />
-            ),
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            render: (_: any, record: PaymentMethod) => (
-                <Space size="middle">
-                    <Button type="primary" size="small" onClick={() => handleEdit(record)}>
-                        Edit
-                    </Button>
-                    <Button danger size="small" onClick={() => handleDelete(record.id)}>
-                        Delete
-                    </Button>
-                </Space>
-            ),
-        },
-    ];
-
-    const handleSubmit = async (values: any) => {
-        try {
-            setLoading(true);
-            // await api.createPaymentMethod(values);
-            message.success('Payment method added successfully');
-            setIsAddModalVisible(false);
-            form.resetFields();
-            // fetchPaymentMethods();
-        } catch (error) {
-            message.error('Failed to add payment method');
-            console.error('Error adding payment method:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleStatusChange = async (checked: boolean) => {
-        // Implement status change logic
-    };
-
-    const handleEdit = (record: PaymentMethod) => {
-        // Implement edit logic
-    };
-
-    const handleDelete = async (id: string) => {
-        // Implement delete logic
-    };
-
-    return (
-        <Layout style={{ minHeight: '100vh' }}>
-            <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} theme="light">
-                <div style={{ height: 32, margin: 16, background: 'rgba(0, 0, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1890ff', fontSize: '18px', fontWeight: 'bold' }}>
-                    {!collapsed ? 'ClickMaster' : 'CM'}
-                </div>
-                <Menu
-                    mode="inline"
-                    defaultSelectedKeys={['payment-methods']}
-                    defaultOpenKeys={['sub2']}
-                    style={{ borderRight: 0 }}
-                    items={[
-                        {
-                            key: 'dashboard',
-                            icon: <DashboardOutlined />,
-                            label: 'Dashboard',
-                        },
-                        {
-                            key: 'sub1',
-                            icon: <TeamOutlined />,
-                            label: 'User Management',
-                            children: [
-                                {
-                                    key: 'users',
-                                    label: 'All Users',
-                                },
-                                {
-                                    key: 'roles',
-                                    label: 'Roles & Permissions',
-                                },
-                                {
-                                    key: 'invites',
-                                    label: 'User Invitations',
-                                },
-                            ],
-                        },
-                        {
-                            key: 'sub2',
-                            icon: <WalletOutlined />,
-                            label: 'Financial',
-                            children: [
-                                {
-                                    key: 'transactions',
-                                    label: 'Transactions',
-                                },
-                                {
-                                    key: 'withdrawals',
-                                    label: 'Withdrawals',
-                                },
-                                {
-                                    key: 'payment-methods',
-                                    label: 'Payment Methods',
-                                },
-                                {
-                                    key: 'reports',
-                                    label: 'Financial Reports',
-                                },
-                            ],
-                        },
-                        {
-                            key: 'history',
-                            icon: <HistoryOutlined />,
-                            label: 'Activity History',
-                        },
-                        {
-                            key: 'settings',
-                            icon: <SettingOutlined />,
-                            label: 'Settings',
-                        },
-                    ]}
-                />
-            </Sider>
-            <Layout>
-                <div className="p-6">
-                    <Card
-                        title="Payment Methods"
-                        extra={
-                            <Button
-                                type="primary"
-                                icon={<PlusOutlined />}
-                                onClick={() => setIsAddModalVisible(true)}
-                            >
-                                Add Payment Method
-                            </Button>
-                        }
-                        bordered={false}
-                    >
-                        <Table
-                            columns={columns}
-                            dataSource={paymentMethods}
-                            loading={loading}
-                            rowKey="id"
-                        />
-                    </Card>
-
-                    <Modal
-                        title="Add Payment Method"
-                        visible={isAddModalVisible}
-                        onCancel={() => setIsAddModalVisible(false)}
-                        footer={null}
-                        className="payment-method-modal"
-                        width="100%"
-                        style={{ maxWidth: '100vw', margin: 0, padding: 0, top: 0 }}
-                        modalRender={modal => (
-                            <div className="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center z-50 p-4 animate-fadeIn">
-                                <div className="bg-gray-800/80 backdrop-blur-xl rounded-2xl p-6 w-full max-w-2xl border border-gray-700/50 shadow-2xl transform transition-all duration-300 scale-100 animate-modalSlideIn">
-                                    {modal}
-                                </div>
-                            </div>
-                        )}
-                    >
-                        <Form
-                            form={form}
-                            layout="vertical"
-                            onFinish={handleSubmit}
-                            className="space-y-6"
-                        >
-                            <Form.Item
-                                name="name"
-                                label="Payment Method Name"
-                                rules={[{ required: true, message: 'Please enter payment method name' }]}
-                            >
-                                <Input placeholder="Enter payment method name" />
-                            </Form.Item>
-
-                            <Form.Item
-                                name="currency"
-                                label="Currency"
-                                rules={[{ required: true, message: 'Please select currency' }]}
-                            >
-                                <Select placeholder="Select currency">
-                                    <Option value="USD">USD</Option>
-                                    <Option value="EUR">EUR</Option>
-                                    <Option value="GBP">GBP</Option>
-                                    <Option value="USDT">USDT</Option>
-                                    <Option value="BTC">BTC</Option>
-                                    <Option value="ETH">ETH</Option>
-                                </Select>
-                            </Form.Item>
-
-                            <Form.Item
-                                name="network"
-                                label="Network"
-                                rules={[{ required: true, message: 'Please select network' }]}
-                            >
-                                <Select placeholder="Select network">
-                                    <Option value="ERC20">ERC20</Option>
-                                    <Option value="TRC20">TRC20</Option>
-                                    <Option value="BEP20">BEP20</Option>
-                                    <Option value="Bitcoin">Bitcoin</Option>
-                                    <Option value="Ethereum">Ethereum</Option>
-                                </Select>
-                            </Form.Item>
-
-                            <Form.Item
-                                name="fee"
-                                label="Transaction Fee (%)"
-                                rules={[{ required: true, message: 'Please enter transaction fee' }]}
-                            >
-                                <InputNumber
-                                    min={0}
-                                    max={100}
-                                    step={0.01}
-                                    style={{ width: '100%' }}
-                                />
-                            </Form.Item>
-
-                            <Row gutter={16}>
-                                <Col span={12}>
-                                    <Form.Item
-                                        name="minAmount"
-                                        label="Minimum Amount"
-                                        rules={[{ required: true, message: 'Please enter minimum amount' }]}
-                                    >
-                                        <InputNumber
-                                            min={0}
-                                            step={0.01}
-                                            style={{ width: '100%' }}
-                                            prefix="$"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={12}>
-                                    <Form.Item
-                                        name="maxAmount"
-                                        label="Maximum Amount"
-                                        rules={[{ required: true, message: 'Please enter maximum amount' }]}
-                                    >
-                                        <InputNumber
-                                            min={0}
-                                            step={0.01}
-                                            style={{ width: '100%' }}
-                                            prefix="$"
-                                        />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-
-                            <Form.Item
-                                name="isActive"
-                                valuePropName="checked"
-                                initialValue={true}
-                            >
-                                <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-                            </Form.Item>
-
-                            <Form.Item>
-                                <Space>
-                                    <Button type="primary" htmlType="submit" loading={loading}>
-                                        Add Payment Method
-                                    </Button>
-                                    <Button onClick={() => setIsAddModalVisible(false)}>
-                                        Cancel
-                                    </Button>
-                                </Space>
-                            </Form.Item>
-                        </Form>
-                    </Modal>
-                </div>
-            </Layout>
-        </Layout>
-    );
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: Omit<PaymentMethod, 'id'>) => void;
+  initialData?: PaymentMethod;
+  mode?: 'add' | 'edit';
 }
+
+const PaymentMethodModal = ({ isOpen, onClose, onSubmit, initialData, mode = 'add' }: ModalProps) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    type: 'mobile_banking',
+    icon: '',
+    status: 'active',
+    minimumAmount: 0,
+    maximumAmount: 0,
+    processingTime: '',
+    fees: ''
+  });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+    if (mode === 'add') {
+      setFormData({
+        name: '',
+        type: 'mobile_banking',
+        icon: '',
+        status: 'active',
+        minimumAmount: 0,
+        maximumAmount: 0,
+        processingTime: '',
+        fees: ''
+      });
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+        >
+          <CloseOutlined />
+        </button>
+        <h2 className="text-xl font-semibold text-white mb-6">
+          {mode === 'add' ? 'Add New Payment Method' : 'Edit Payment Method'}
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-gray-300 mb-2">Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-gray-300 mb-2">Type</label>
+            <select
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="mobile_banking">Mobile Banking</option>
+              <option value="crypto">Cryptocurrency</option>
+              <option value="bank">Bank Transfer</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-gray-300 mb-2">Icon URL</label>
+            <input
+              type="text"
+              value={formData.icon}
+              onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+              placeholder="/images/example.png"
+            />
+          </div>
+          <div>
+            <label className="block text-gray-300 mb-2">Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-300 mb-2">Min Amount</label>
+              <input
+                type="number"
+                value={formData.minimumAmount}
+                onChange={(e) => setFormData({ ...formData, minimumAmount: Number(e.target.value) })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-gray-300 mb-2">Max Amount</label>
+              <input
+                type="number"
+                value={formData.maximumAmount}
+                onChange={(e) => setFormData({ ...formData, maximumAmount: Number(e.target.value) })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-gray-300 mb-2">Processing Time</label>
+            <input
+              type="text"
+              value={formData.processingTime}
+              onChange={(e) => setFormData({ ...formData, processingTime: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+              placeholder="1-2 hours"
+            />
+          </div>
+          <div>
+            <label className="block text-gray-300 mb-2">Fees</label>
+            <input
+              type="text"
+              value={formData.fees}
+              onChange={(e) => setFormData({ ...formData, fees: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+              placeholder="1.5%"
+            />
+          </div>
+          <div className="flex justify-end gap-4 mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors"
+            >
+              {mode === 'add' ? 'Add Method' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+interface DeleteConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  methodName: string;
+}
+
+const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, methodName }: DeleteConfirmationModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md">
+        <div className="text-center">
+          <ExclamationCircleOutlined className="text-4xl text-red-500 mb-4" />
+          <h3 className="text-xl font-semibold text-white mb-2">Delete Payment Method</h3>
+          <p className="text-gray-300 mb-6">
+            Are you sure you want to delete <span className="font-semibold">{methodName}</span>? This action cannot be undone.
+          </p>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function PaymentMethodsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [loading, setLoading] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+
+  useEffect(() => {
+    setLoading(true);
+    API_CALL({ url: '/payment-methods' })
+      .then((res) => {
+        setPaymentMethods(res.response?.result as any);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleRefresh = () => {
+    setLoading(true);
+    API_CALL({ url: '/payment-methods' })
+      .then((res) => {
+        setPaymentMethods(res.response?.result as any);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  const handleAddPaymentMethod = async (data: Omit<PaymentMethod, 'id'>) => {
+    setLoading(true);
+    try {
+      const response = await API_CALL({
+        url: '/payment-methods',
+        method: 'POST',
+        body: data
+      });
+      if (response.response) {
+        handleRefresh();
+        setIsModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error adding payment method:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditPaymentMethod = async (data: Omit<PaymentMethod, 'id'>) => {
+    if (!selectedMethod) return;
+    
+    setLoading(true);
+    try {
+      const response = await API_CALL({
+        url: `/payment-methods/${selectedMethod.id}`,
+        method: 'PUT',
+        body: data
+      });
+      if (response.response) {
+        handleRefresh();
+        setIsModalOpen(false);
+        setSelectedMethod(null);
+      }
+    } catch (error) {
+      console.error('Error updating payment method:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePaymentMethod = async () => {
+    if (!selectedMethod) return;
+    
+    setLoading(true);
+    try {
+      const response = await API_CALL({
+        url: `/payment-methods/${selectedMethod.id}`,
+        method: 'DELETE'
+      });
+      if (response.response) {
+        handleRefresh();
+        setIsDeleteModalOpen(false);
+        setSelectedMethod(null);
+      }
+    } catch (error) {
+      console.error('Error deleting payment method:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEditModal = (method: PaymentMethod) => {
+    setSelectedMethod(method);
+    setModalMode('edit');
+    setIsModalOpen(true);
+  };
+
+  const openDeleteModal = (method: PaymentMethod) => {
+    setSelectedMethod(method);
+    setIsDeleteModalOpen(true);
+  };
+
+  const filteredPaymentMethods = paymentMethods.filter(method => {
+    const matchesSearch = method.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         method.type.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = selectedType === 'all' || method.type === selectedType;
+    return matchesSearch && matchesType;
+  });
+
+  const stats = {
+    total: paymentMethods.length,
+    active: paymentMethods.filter(m => m.status === 'active').length,
+    crypto: paymentMethods.filter(m => m.type === 'crypto').length,
+  };
+
+  const menuItems = [
+    {
+      key: '/admin',
+      icon: <DashboardOutlined />,
+      label: 'Dashboard'
+    },
+    {
+      key: '/admin/users',
+      icon: <UserOutlined />,
+      label: 'Users'
+    },
+    {
+      key: '/admin/withdrawals',
+      icon: <WalletOutlined />,
+      label: 'Withdrawals'
+    },
+    {
+      key: '/admin/payment-methods',
+      icon: <CreditCardOutlined />,
+      label: 'Payment Methods'
+    },
+    {
+      key: '/admin/notifications',
+      icon: <BellOutlined />,
+      label: 'Notifications'
+    },
+    {
+      key: '/admin/roles',
+      icon: <TeamOutlined />,
+      label: 'Roles'
+    },
+    {
+      key: '/admin/history',
+      icon: <HistoryOutlined />,
+      label: 'History'
+    },
+    {
+      key: '/admin/settings',
+      icon: <SettingOutlined />,
+      label: 'Settings'
+    }
+  ];
+
+  return (
+    <div className='bg-gray-900'>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 transition-colors duration-300">
+        <div className="min-h-screen text-gray-100">
+          <aside className="fixed inset-y-0 left-0 bg-gray-900 w-64 border-r border-gray-700 shadow-lg transition-colors duration-300">
+            <nav className="mt-8 px-4">
+              {menuItems.map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => router.push(item.key)}
+                  className={`w-full flex items-center px-4 py-3 mb-2 rounded-xl text-left transition-all duration-300 ease-in-out
+                    ${pathname === item.key
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-gray-300 hover:bg-gray-800'}`}
+                >
+                  <span className={`text-xl mr-4 ${pathname === item.key ? 'text-white' : 'text-blue-400'}`}>
+                    {item.icon}
+                  </span>
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          <main className="ml-64 p-8">
+            <div className="flex justify-between items-center mb-8 bg-gray-900 p-6 rounded-2xl shadow-lg border border-gray-800 transition-all duration-300">
+              <h1 className="text-2xl font-bold text-gray-100 flex items-center">
+                <CreditCardOutlined className="mr-3 text-blue-400" />
+                Payment Methods Management
+              </h1>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => router.push('/admin')}
+                  className="flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition-all duration-300 shadow-md"
+                >
+                  <DashboardOutlined />
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-all duration-300 shadow-md"
+                >
+                  <PlusOutlined />
+                  Add New
+                </button>
+                <button
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  className={`flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-300 shadow-md
+                    ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg transform hover:-translate-y-0.5'}`}
+                >
+                  <RedoOutlined className={`${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-gray-900 rounded-2xl shadow-lg border border-gray-800 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
+                <div className="flex items-center">
+                  <div className="p-4 rounded-xl bg-blue-900/20 group-hover:bg-blue-900/40 transition-all duration-300">
+                    <CreditCardOutlined className="text-blue-400 text-2xl group-hover:scale-110 transition-transform" />
+                  </div>
+                  <div className="ml-4">
+                    <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Total Methods</h2>
+                    <p className="text-3xl font-bold text-white mt-1">{stats.total}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-900 rounded-2xl shadow-lg border border-gray-800 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
+                <div className="flex items-center">
+                  <div className="p-4 rounded-xl bg-green-900/20 group-hover:bg-green-900/40 transition-all duration-300">
+                    <CheckCircleOutlined className="text-green-400 text-2xl group-hover:scale-110 transition-transform" />
+                  </div>
+                  <div className="ml-4">
+                    <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Active Methods</h2>
+                    <p className="text-3xl font-bold text-white mt-1">{stats.active}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-900 rounded-2xl shadow-lg border border-gray-800 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
+                <div className="flex items-center">
+                  <div className="p-4 rounded-xl bg-purple-900/20 group-hover:bg-purple-900/40 transition-all duration-300">
+                    <i className="fab fa-bitcoin text-purple-400 text-2xl group-hover:scale-110 transition-transform" />
+                  </div>
+                  <div className="ml-4">
+                    <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Crypto Methods</h2>
+                    <p className="text-3xl font-bold text-white mt-1">{stats.crypto}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-900 rounded-2xl shadow-lg border border-gray-800 p-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h2 className="text-xl font-semibold text-gray-100">Payment Methods</h2>
+                <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                  <div className="relative flex-grow md:flex-grow-0 md:min-w-[200px]">
+                    <input
+                      type="text"
+                      placeholder="Search methods..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    />
+                  </div>
+                  <select
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                    className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="mobile_banking">Mobile Banking</option>
+                    <option value="crypto">Cryptocurrency</option>
+                    <option value="bank">Bank Transfer</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredPaymentMethods.length === 0 ? (
+                  <div className="col-span-full py-8 text-center text-gray-500">
+                    {searchTerm || selectedType !== 'all' ? 'No matching payment methods found' : 'No payment methods found'}
+                  </div>
+                ) : (
+                  filteredPaymentMethods.map((method) => (
+                    <div
+                      key={method.id}
+                      className="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-blue-500 transition-all duration-300 group"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center">
+                          <div className="w-12 h-12 relative rounded-lg overflow-hidden bg-gray-700">
+                            <Image
+                              src={method.icon}
+                              alt={method.name}
+                              layout="fill"
+                              objectFit="cover"
+                            />
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="font-semibold text-lg text-white">{method.name}</h3>
+                            <span className="text-sm text-gray-400 capitalize">{method.type.replace('_', ' ')}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openEditModal(method)}
+                            className="p-2 text-blue-400 hover:text-blue-300 transition-colors"
+                          >
+                            <EditOutlined />
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(method)}
+                            className="p-2 text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            <DeleteOutlined />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Status</span>
+                          <span className={`px-2 py-1 rounded-lg ${
+                            method.status === 'active' ? 'bg-green-900/20 text-green-400' : 'bg-red-900/20 text-red-400'
+                          }`}>
+                            {method.status}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Min Amount</span>
+                          <span className="text-white">${method.minimumAmount}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Max Amount</span>
+                          <span className="text-white">${method.maximumAmount}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Processing Time</span>
+                          <span className="text-white">{method.processingTime}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Fees</span>
+                          <span className="text-white">{method.fees}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <PaymentMethodModal
+              isOpen={isModalOpen}
+              onClose={() => {
+                setIsModalOpen(false);
+                setSelectedMethod(null);
+                setModalMode('add');
+              }}
+              onSubmit={modalMode === 'add' ? handleAddPaymentMethod : handleEditPaymentMethod}
+              initialData={selectedMethod || undefined}
+              mode={modalMode}
+            />
+            <DeleteConfirmationModal
+              isOpen={isDeleteModalOpen}
+              onClose={() => {
+                setIsDeleteModalOpen(false);
+                setSelectedMethod(null);
+              }}
+              onConfirm={handleDeletePaymentMethod}
+              methodName={selectedMethod?.name || ''}
+            />
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+} 

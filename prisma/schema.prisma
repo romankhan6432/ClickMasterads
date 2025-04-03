@@ -1,0 +1,13 @@
+model DirectLink {
+  id        String   @id @default(cuid())
+  url       String
+  title     String?
+  clicks    Int      @default(0)
+  status    String   @default("active") // active or inactive
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+} 

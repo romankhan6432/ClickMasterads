@@ -437,20 +437,23 @@ h2 {
   background: var(--ant-color-error);
 }
 
-
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes modalSlideIn {
   from {
     opacity: 0;
-    transform: scale(0.95) translateY(-10px);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
@@ -458,6 +461,6 @@ h2 {
   animation: fadeIn 0.3s ease-out;
 }
 
-.animate-modalSlideIn {
-  animation: modalSlideIn 0.3s ease-out;
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
 }

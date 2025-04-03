@@ -5,16 +5,14 @@ import { motion } from "framer-motion";
 import { RootState } from "../store";
 import { useSelector } from "react-redux";
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSession } from "next-auth/react";
 
 interface DirectLink {
     _id: string;
     title: string;
     url: string;
     icon: string;
-    gradient: {
-        from: string;
-        to: string;
-    };
+    
 }
 
 interface ButtonState {
@@ -22,6 +20,7 @@ interface ButtonState {
         isLocked: boolean;
         countdown: number;
         lastUpdated: number;
+        clickTimestamp: number;
     };
 }
 
@@ -66,36 +65,14 @@ const rgbAnimation = `
 `;
 
 export default function DirectLinks() {
-    const userState = useSelector((state: RootState) => state.userStats.userState); 
+    const userState = useSelector((state: RootState) => state.userStats.userState);
     const links = userState?.directLinks || [];
     
-    // Initialize button states from localStorage
-    const [buttonStates, setButtonStates] = useState<ButtonState>(() => {
-        if (typeof window === 'undefined') return {};
-        
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (!saved) return {};
 
-        const parsed = JSON.parse(saved);
-        const now = Date.now();
-        
-        // Clean up expired states and update countdowns
-        const updated: ButtonState = {};
-        Object.entries(parsed).forEach(([id, state]: [string, any]) => {
-            const elapsed = Math.floor((now - state.lastUpdated) / 1000);
-            const remaining = Math.max(0, state.countdown - elapsed);
-            
-            if (remaining > 0) {
-                updated[id] = {
-                    isLocked: true,
-                    countdown: remaining,
-                    lastUpdated: now
-                };
-            }
-        });
-        
-        return updated;
-    });
+    // Initialize button states from localStorage
+    const [buttonStates, setButtonStates] = useState<ButtonState>({});
+
+    
 
     // Add RGB animation styles
     useEffect(() => {
@@ -107,54 +84,30 @@ export default function DirectLinks() {
         };
     }, []);
 
-    // Persist button states to localStorage
-    useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(buttonStates));
-    }, [buttonStates]);
-
-    // Memoized countdown timer
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setButtonStates(prevStates => {
-                const newStates = { ...prevStates };
-                let hasUpdates = false;
-
-                Object.keys(newStates).forEach(linkId => {
-                    if (newStates[linkId].countdown > 0) {
-                        newStates[linkId].countdown -= 1;
-                        newStates[linkId].lastUpdated = Date.now();
-                        hasUpdates = true;
-                    }
-                    if (newStates[linkId].countdown === 0) {
-                        delete newStates[linkId];
-                        hasUpdates = true;
-                    }
-                });
-
-                return hasUpdates ? newStates : prevStates;
-            });
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, []);
+    // Function to generate a hash based on linkId and timestamp
+    const generateHash = (linkId: string, timestamp: number) => {
+        const str = `${linkId}_${timestamp}_${process.env.NEXT_PUBLIC_HASH_SECRET || 'secret'}`;
+        return btoa(str).replace(/[^a-zA-Z0-9]/g, '');
+    };
 
     const handleDirectLinkClick = useCallback(async (link: DirectLink) => {
-        if (buttonStates[link._id]?.isLocked) {
-            message.warning('Please wait for the countdown to finish');
-            return;
-        }
-
         try {
+            // Check if button is already locked
+            if (buttonStates[link._id]?.isLocked) {
+                message.warning('Please wait for the countdown to finish');
+                return;
+            }
+
+            const clickTime = Date.now();
             setButtonStates(prev => ({
                 ...prev,
                 [link._id]: {
                     isLocked: true,
                     countdown: 30,
-                    lastUpdated: Date.now()
+                    lastUpdated: Date.now(),
+                    clickTimestamp: clickTime
                 }
             }));
-
-           
 
             window.open(link.url, '_blank');
         } catch (error) {
@@ -166,6 +119,77 @@ export default function DirectLinks() {
                 return newState;
             });
         }
+    }, [buttonStates]);
+
+    // Function to handle API call when countdown finishes
+    const handleCountdownFinish = async (linkId: string) => {
+        try {
+            const buttonState = buttonStates[linkId];
+            if (!buttonState?.clickTimestamp) {
+                throw new Error('Invalid click timestamp');
+            }
+
+            const timestamp = buttonState.clickTimestamp;
+            const hash = generateHash(linkId, timestamp);
+
+            const response = await fetch('/api/direct-links/click', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: linkId,
+                    userId: '6070955607',
+                    timestamp,
+                    hash
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to record link click');
+            }
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                message.success('Reward credited successfully!');
+            }
+        } catch (error) {
+            console.error('Error recording link click:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Failed to credit reward';
+            message.error(errorMessage);
+        }
+    };
+
+    // Consolidated countdown timer effect
+    useEffect(() => {
+        const intervals: { [key: string]: NodeJS.Timeout } = {};
+
+        Object.entries(buttonStates).forEach(([linkId, state]) => {
+            if (state.isLocked && state.countdown > 0) {
+                intervals[linkId] = setInterval(() => {
+                    setButtonStates(prev => {
+                        const newState = { ...prev };
+                        if (newState[linkId].countdown <= 1) {
+                            const clickTimestamp = newState[linkId].clickTimestamp;
+                            delete newState[linkId];
+                            // Make API call when countdown finishes
+                            handleCountdownFinish(linkId);
+                            return newState;
+                        }
+                        newState[linkId] = {
+                            ...newState[linkId],
+                            countdown: newState[linkId].countdown - 1
+                        };
+                        return newState;
+                    });
+                }, 1000);
+            }
+        });
+
+        return () => {
+            Object.values(intervals).forEach(interval => clearInterval(interval));
+        };
     }, [buttonStates]);
 
     const linkButtons = useMemo(() => {
@@ -183,7 +207,7 @@ export default function DirectLinks() {
                     className={`group relative flex items-center justify-center w-full h-16 rounded-xl shadow-lg overflow-hidden transition-all duration-300 
                         ${isLocked ? 'opacity-75 cursor-not-allowed' : 'rgb-border-animation hover:scale-105 hover:shadow-2xl'}`}
                     style={{
-                        background: `linear-gradient(to right, var(--tw-gradient-from-${link.gradient.from}), var(--tw-gradient-to-${link.gradient.to}))`
+                        background: `linear-gradient(to right, var(--tw-gradient-from- , var(--tw-gradient-to- ))`
                     }}
                 >
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
@@ -205,13 +229,6 @@ export default function DirectLinks() {
                             </div>
                         )}
                     </div>
-                    {isLocked && (
-                        <div className="absolute -bottom-6 left-0 right-0 text-center">
-                            <span className="text-amber-400 text-sm font-medium animate-pulse">
-                                {countdown}s
-                            </span>
-                        </div>
-                    )}
                 </motion.button>
             );
         });
@@ -232,7 +249,7 @@ export default function DirectLinks() {
 
                 {links.length === 0 ? (
                     <div className="w-full py-8">
-                        <Empty 
+                        <Empty
                             description={
                                 <span className="text-gray-400">No links available</span>
                             }
@@ -240,7 +257,7 @@ export default function DirectLinks() {
                         />
                     </div>
                 ) : (
-                    <motion.div 
+                    <motion.div
                         variants={container}
                         initial="hidden"
                         animate="show"
