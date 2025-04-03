@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
- 
+
 import Withdrawal from '@/app/models/Withdrawal';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/authOptions';
 
 // Constants for conversion
 const USD_TO_BDT_RATE = 100; // 1 USD = 100 BDT
@@ -21,11 +23,34 @@ function convertBDTtoUSDT(bdtAmount: number): number {
     return bdtAmount / USD_TO_BDT_RATE;
 }
 
-export async function GET(req: Request) {
+export async function GET(req: Request    ) {
     try {
+        const { searchParams } = new URL(req.url);
+        const telegramId = searchParams.get('telegramId');
         await dbConnect();
-          
-        const user = await User.findOne({  telegramId : '709148502' });
+
+        const session = await getServerSession(authOptions);
+
+        if (session) {
+            const withdrawals = await Withdrawal.find({})
+                .sort({ createdAt: -1 })
+                .populate('userId', 'name email username')
+                .lean();
+            const withdrawalsWithConversion = withdrawals.map(w => ({
+                ...w,
+                bdtAmount: w.method.toLowerCase() === 'bkash' || w.method.toLowerCase() === 'nagad'
+                    ? w.amount
+                    : convertUSDTtoBDT(w.amount)
+            }));
+
+            return NextResponse.json({ result: withdrawalsWithConversion });
+        }
+
+        if (!telegramId) {
+            return NextResponse.json({ error: 'Telegram ID is required' }, { status: 400 });
+        }
+
+        const user = await User.findOne({ telegramId: telegramId.toString() });
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
@@ -38,14 +63,12 @@ export async function GET(req: Request) {
         // Add converted amounts to the response
         const withdrawalsWithConversion = withdrawals.map(w => ({
             ...w,
-            bdtAmount: w.method.toLowerCase() === 'bkash' || w.method.toLowerCase() === 'nagad' 
-                ? w.amount 
+            bdtAmount: w.method.toLowerCase() === 'bkash' || w.method.toLowerCase() === 'nagad'
+                ? w.amount
                 : convertUSDTtoBDT(w.amount)
         }));
-  
-        
 
-        return NextResponse.json({ result : withdrawalsWithConversion });
+        return NextResponse.json({ result: withdrawalsWithConversion });
     } catch (error: any) {
         console.error(error);
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -55,12 +78,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         await dbConnect();
-      
-     
 
         const data = await req.json();
-        const { method, amount, recipient , telegramId, network } = data;
- 
+        const { method, amount, recipient, telegramId, network } = data;
+
         // Validate required fields
         if (!method || !amount || !recipient) {
             return NextResponse.json(
@@ -145,38 +166,36 @@ export async function POST(req: Request) {
     }
 }
 
-export async function DELETE ( req : Request , context : any){
- try {
-    
-    const { id } = await req.json();
-    if (!id) {
-        return NextResponse.json({ error: 'Missing withdrawal ID' }, { status: 400 });
+export async function DELETE(req: Request, context: any) {
+    try {
+        const { id } = await req.json();
+        if (!id) {
+            return NextResponse.json({ error: 'Missing withdrawal ID' }, { status: 400 });
+        }
+
+        const withdrawal = await Withdrawal.findById(id);
+        if (!withdrawal) {
+            return NextResponse.json({ error: 'Withdrawal not found' }, { status: 404 });
+        }
+
+        if (withdrawal.status !== 'pending') {
+            return NextResponse.json({ error: 'Can only cancel pending withdrawals' }, { status: 400 });
+        }
+
+        // Refund the USDT amount to user's balance
+        await User.findByIdAndUpdate(withdrawal.userId, {
+            $inc: { balance: withdrawal.amount }
+        });
+
+        await Withdrawal.findByIdAndDelete(id);
+
+        return NextResponse.json({
+            message: 'Withdrawal cancelled successfully',
+            refundedAmount: withdrawal.amount,
+            refundedAmountBDT: convertUSDTtoBDT(withdrawal.amount)
+        });
+    } catch (error) {
+        console.error(error);
+        return NextResponse.json({ error: 'Failed to cancel withdrawal' }, { status: 500 });
     }
-
-    const withdrawal = await Withdrawal.findById(id);
-    if (!withdrawal) {
-        return NextResponse.json({ error: 'Withdrawal not found' }, { status: 404 });
-    }
-
-    if (withdrawal.status !== 'pending') {
-        return NextResponse.json({ error: 'Can only cancel pending withdrawals' }, { status: 400 });
-    }
-
-    // Refund the USDT amount to user's balance
-    await User.findByIdAndUpdate(withdrawal.userId, {
-        $inc: { balance: withdrawal.amount }
-    });
-
-    await Withdrawal.findByIdAndDelete(id);
-    
-
-   return NextResponse.json({ 
-        message: 'Withdrawal cancelled successfully',
-        refundedAmount: withdrawal.amount,
-        refundedAmountBDT: convertUSDTtoBDT(withdrawal.amount)
-    });
- } catch (error) {
-    console.error(error);
-     return NextResponse.json({ error: 'Failed to cancel withdrawal' }, { status: 500 });
- }
 } 
