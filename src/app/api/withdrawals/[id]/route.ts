@@ -19,10 +19,10 @@ interface WithdrawalPopulated extends Omit<IWithdrawal, 'userId'> {
 
 export async function GET(request: Request, context: any) {
     try {
-      
+        const { id } = await context.params;
         await dbConnect();
     
-        const { id } = await context.params;
+        
         const withdrawal = await Withdrawal.findById(id)
             .populate('userId', 'name email')
             .lean();
@@ -34,7 +34,7 @@ export async function GET(request: Request, context: any) {
             );
         }
          
-        return NextResponse.json(withdrawal);
+        return NextResponse.json({ result : withdrawal});
     } catch (error: any) {
         console.error(error);
         return NextResponse.json(
@@ -48,10 +48,11 @@ export async function PUT(request: Request, context: any) {
     try {
   
      
+        const { id } = context.params;
 
         await dbConnect();
 
-        const { id } = context.params;
+       
         const data = await request.json();
         const { status } = data;
 

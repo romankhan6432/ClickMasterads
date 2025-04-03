@@ -7,8 +7,7 @@ import { ThemeProvider } from "@/app/providers/ThemeProvider";
 import { StyleProvider } from '@ant-design/cssinjs';
 import { Provider as ReduxProvider } from 'react-redux';
 import { store } from '@/app/store';
-import { App } from 'antd';
-import { isMobile } from 'react-device-detect';
+  
 import { ToastContainer  } from 'react-toastify';
 export default function WrapperProvider({ children }: { children: React.ReactNode }) {
    
@@ -18,17 +17,10 @@ export default function WrapperProvider({ children }: { children: React.ReactNod
         <ReduxProvider store={store}>
           <SessionProvider>
             <ThemeProvider>
-            <ToastContainer />
-              <App>
-              <div style={{ 
-                minHeight: '100vh',
-                background: '#00000',
-                color: 'rgba(255,255,255,0.85)'
-              }}>
-      
+             <ToastContainer />
                 {children}
-              </div>
-              </App>
+            
+               
             </ThemeProvider>
           </SessionProvider>
         </ReduxProvider>

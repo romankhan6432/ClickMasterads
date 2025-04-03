@@ -19,7 +19,7 @@ import {
 import { API_CALL } from '@/lib/client';
 
 interface Withdrawal {
-  id: string;
+  _id: string;
   userId: {
     email: string;
    username: string;
@@ -51,13 +51,55 @@ export default function WithdrawalsPage() {
   }, []);
 
   const handleRefresh = () => {
-    
+    setLoading(true);
     API_CALL({ url: '/withdrawals' })
       .then((res) => {
         setWithdrawals(res.response?.result as any);
         console.log(res.response?.result);
       })
       .finally(() => setLoading(false));
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      setLoading(true);
+      const { status } = await API_CALL({ 
+        url: `/withdrawals/${id}`, 
+        method: 'PUT',
+        body: { status: 'approved' }
+      });
+      
+      if (status === 200) {
+        handleRefresh();
+      }
+    } catch (error) {
+      console.error('Error approving withdrawal:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      setLoading(true);
+      const { status } = await API_CALL({ 
+        url: `/withdrawals/${id}`, 
+        method: 'PUT',
+        body: { status: 'rejected' }
+      });
+      
+      if (status === 200) {
+        handleRefresh();
+      }
+    } catch (error) {
+      console.error('Error rejecting withdrawal:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewDetails = (id: string) => {
+    router.push(`/admin/withdrawals/${id}`);
   };
 
   const filteredWithdrawals = withdrawals.filter(withdrawal => {
@@ -270,7 +312,7 @@ export default function WithdrawalsPage() {
                       </tr>
                     ) : (
                       filteredWithdrawals.map((withdrawal) => (
-                        <tr key={withdrawal.id} className="hover:bg-gray-800/50 transition-colors duration-200">
+                        <tr key={withdrawal._id} className="hover:bg-gray-800/50 transition-colors duration-200">
                           <td className="py-4 px-2">
                             <div className="flex flex-col">
                               <span className="font-medium">{withdrawal.userId.username}</span>
@@ -305,22 +347,38 @@ export default function WithdrawalsPage() {
                                 <>
                                   <button
                                     className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
-                                    onClick={() => {/* TODO: Handle approve */}}
+                                    onClick={() => handleApprove(withdrawal._id)}
+                                    disabled={loading}
                                   >
-                                    Approve
+                                    {loading ? 'Processing...' : 'Approve'}
                                   </button>
                                   <button
                                     className="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
-                                    onClick={() => {/* TODO: Handle reject */}}
+                                    onClick={() => handleReject(withdrawal._id)}
+                                    disabled={loading}
                                   >
-                                    Reject
+                                    {loading ? 'Processing...' : 'Reject'}
+                                  </button>
+                                  <button
+                                    className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+                                    onClick={() => handleViewDetails(withdrawal._id)}
+                                  >
+                                    Details
                                   </button>
                                 </>
                               )}
                               {withdrawal.status !== 'pending' && (
-                                <span className="text-sm text-gray-400">
-                                  {withdrawal.status === 'approved' ? 'Approved' : 'Rejected'}
-                                </span>
+                                <div className="flex gap-2">
+                                  <span className="text-sm text-gray-400">
+                                    {withdrawal.status === 'approved' ? 'Approved' : 'Rejected'}
+                                  </span>
+                                  <button
+                                    className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+                                    onClick={() => handleViewDetails(withdrawal._id)}
+                                  >
+                                    Details
+                                  </button>
+                                </div>
                               )}
                             </div>
                           </td>

@@ -16,14 +16,17 @@ import {
   BellOutlined,
   TeamOutlined,
   HistoryOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import { API_CALL } from '@/lib/client';
+import UserDetailsModal from '@/app/components/modals/UserDetailsModal';
+import { message } from 'antd';
 
 interface User {
   _id: string;
   fullName: string;
   telegramId: string;
-  status: 'active' | 'inactive';
+  status: 'active' | 'banned';
   username: string;
   email: string;
   role: string;
@@ -53,23 +56,51 @@ export default function UsersPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isUserDetailsModalOpen, setIsUserDetailsModalOpen] = useState(false);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await API_CALL({ url: '/admin/users' });
+      setUsers(res.response?.result?.users || []);
+      setStats(res.response?.result?.stats || null);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      message.error('Failed to fetch users');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    API_CALL({ url: '/admin/users' })
-      .then(res => {
-        setUsers(res.response?.result?.users || []);
-        console.log(res.response?.result)
-        setStats(res.response?.result?.stats || null);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('Error fetching users:', error);
-        setLoading(false);
-      });
+    fetchUsers();
   }, []);
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
+  };
+
+  const handleViewUser = (user: User) => {
+    setSelectedUser(user);
+    setIsUserDetailsModalOpen(true);
+  };
+
+  const handleUserUpdate = () => {
+    fetchUsers();
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await API_CALL({
+        url: `/admin/users/${userId}`,
+        method: 'DELETE'
+      });
+      message.success('User deleted successfully');
+      fetchUsers();
+    } catch (error) {
+      message.error('Failed to delete user');
+    }
   };
 
   const filteredUsers = users?.filter(user =>
@@ -77,8 +108,6 @@ export default function UsersPage() {
     user?.email?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-
- 
   const menuItems = [
     {
       key: '/admin',
@@ -244,6 +273,8 @@ export default function UsersPage() {
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Username</th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Email</th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Role</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Balance</th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Joined Date</th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
                     </tr>
@@ -251,13 +282,13 @@ export default function UsersPage() {
                   <tbody className="divide-y divide-gray-800">
                     {loading ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                        <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
                           Loading users...
                         </td>
                       </tr>
                     ) : filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                        <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
                           No users found
                         </td>
                       </tr>
@@ -282,36 +313,44 @@ export default function UsersPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex flex-col gap-1">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                ${user.status === 'active' 
-                                  ? 'bg-green-900/20 text-green-400' 
-                                  : 'bg-gray-900/20 text-gray-400'
-                                }`}>
-                                {user.status}
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                              ${user.status === 'active' 
+                                ? 'bg-green-900/20 text-green-400' 
+                                : 'bg-red-900/20 text-red-400'
+                              }`}>
+                              {user.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-xs text-blue-400 capitalize">{user.role}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-gray-300">${user.balance.toFixed(2)}</span>
+                              <span className="text-sm text-gray-400">
+                                Total: ${user.totalEarnings.toFixed(2)}
                               </span>
-                              <span className="text-xs text-blue-400">{user.role}</span>
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex flex-col">
                               <span className="text-gray-300">{new Date(user.createdAt).toLocaleDateString()}</span>
                               <span className="text-sm text-gray-400">
-                                Earnings: ${user.totalEarnings}
+                                Ads: {user.adsWatched}
                               </span>
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <button
-                                onClick={() => {/* Handle edit */}}
+                                onClick={() => handleViewUser(user)}
                                 className="p-2 text-gray-400 hover:text-blue-400 transition-colors duration-200"
-                                title="Edit User"
+                                title="View Details"
                               >
-                                <EditOutlined />
+                                <EyeOutlined />
                               </button>
                               <button
-                                onClick={() => {/* Handle delete */}}
+                                onClick={() => handleDeleteUser(user._id)}
                                 className="p-2 text-gray-400 hover:text-red-400 transition-colors duration-200"
                                 title="Delete User"
                               >
@@ -329,6 +368,14 @@ export default function UsersPage() {
           </main>
         </div>
       </div>
+
+      {/* User Details Modal */}
+      <UserDetailsModal
+        isOpen={isUserDetailsModalOpen}
+        onClose={() => setIsUserDetailsModalOpen(false)}
+        user={selectedUser}
+        onUserUpdate={handleUserUpdate}
+      />
     </div>
   );
 }
