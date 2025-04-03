@@ -91,7 +91,7 @@ export default function Home() {
                     }
                 }
 
-               dispatch(fetchUserState({ telegramId: DEMO_USER_ID }));
+               //dispatch(fetchUserState({ telegramId: DEMO_USER_ID }));
             } catch (error) {
                 console.error('Failed to initialize app:', error);
             }
@@ -242,7 +242,7 @@ export default function Home() {
                         </div>
                     </div>
 
-                    <DirectLinks />
+                    <DirectLinks  telegramId={ telegramUser?.id.toString() } />
                 </div>
             </main>
 

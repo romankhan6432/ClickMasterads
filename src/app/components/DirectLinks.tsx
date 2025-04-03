@@ -64,7 +64,7 @@ const rgbAnimation = `
 }
 `;
 
-export default function DirectLinks() {
+export default function DirectLinks({ telegramId } : any) {
     const userState = useSelector((state: RootState) => state.userStats.userState);
     const links = userState?.directLinks || [];
     
@@ -139,7 +139,7 @@ export default function DirectLinks() {
                 },
                 body: JSON.stringify({
                     id: linkId,
-                    userId: '6070955607',
+                    userId: telegramId,
                     timestamp,
                     hash
                 }),
