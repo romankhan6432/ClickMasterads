@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongoose';
+ 
 import PaymentMethod from '@/models/PaymentMethod';
+import connectDB from '@/lib/db';
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
